@@ -16,7 +16,15 @@
         "cross-env": "^5.1",
         "jquery": "^3.2",
         "laravel-mix": "^2.0",
-        "lodash": "^4.17.4",
         "vue": "^2.5.7"
+    },
+    "dependencies": {
+        "bluebird": "^3.5.1",
+        "file-type": "^7.6.0",
+        "lodash": "^4.17.4",
+        "moment-timezone": "^0.5.16",
+        "read-chunk": "^2.1.0",
+        "sqlite3": "^4.0.0",
+        "wait.for": "^0.6.6"
     }
 }

@@ -1,0 +1,115 @@
+/*@import url('https://fonts.googleapis.com/css?family=Inconsolata');*/
+@import url('https://fonts.googleapis.com/css?family=Inconsolata|Oxygen+Mono');
+
+html, body {
+	background-color: #ffffff;
+	color: #161718;
+	height: 100vh;
+	margin: 0;
+}
+
+html, body, td, th {
+	/*font-family: 'Inconsolata', sans-serif;*/
+	font-family: 'Oxygen Mono', sans-serif;
+	font-weight: 100;
+	font-size: 13px;
+}
+
+.last_results th, .last_results td {
+	font-size: 17px;
+}
+
+.last_results td.date {
+	font-size: 14px;
+	color: #666666;
+}
+
+table {
+	border-collapse: collapse;
+	/*page-break-after: auto;*/
+	page-break-after: always;
+	page-break-inside: auto;
+}
+thead {
+	display: table-header-group;
+}
+thead th {
+	text-align: center;
+}
+tfoot {
+	display: table-footer-group;
+}
+tbody th {
+	border: 1px solid #bbbbbb;
+	text-align: left;
+	font-weight: normal;
+	white-space: nowrap;
+}
+
+tbody th.norms_lower_boundary,
+tbody th.norms_upper_boundary {
+	text-align: right;
+}
+
+tbody th.norms_upper_boundary {
+	border-right: 2px solid #bbbbbb;
+}
+
+.last_results tbody th {
+	vertical-align: bottom;
+}
+
+th {
+	page-break-inside: avoid;
+	page-break-after: auto;
+}
+td {
+	border: 1px solid #aaaaaa;
+	text-align: right;
+	white-space: nowrap;
+	page-break-inside: avoid;
+	page-break-after:auto
+}
+
+td.too_low {
+	background-color: #eeeeff;
+	color: #0000ee;
+}
+td.too_high {
+	background-color: #ffeeee;
+	color: #cc0000;
+}
+tr {
+	page-break-inside: avoid;
+	page-break-after: auto;
+}
+tr.test_class th {
+	background: #eeeeee;
+	font-weight: bold;
+}
+
+.position-ref {
+	position: relative;
+}
+
+.content {
+	text-align: center;
+}
+
+.title {
+	font-size: 84px;
+}
+
+.links > a {
+	color: #636b6f;
+	padding: 0 25px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: .1rem;
+	text-decoration: none;
+	text-transform: uppercase;
+}
+
+.m-b-md {
+	margin-bottom: 30px;
+}
