@@ -14,7 +14,7 @@ class CreateTestClassesTable extends Migration
     public function up()
     {
         Schema::create('test_classes', function (Blueprint $table) {
-            $table->increments('id');
+            $table->increments('id'); // Implies primary.
 			$table->text('name_lv')->nullable();
 			$table->text('name_en')->nullable();
             $table->integer('order')->nullable();

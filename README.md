@@ -11,7 +11,7 @@ sudo apt-get install php7.1-sqlite3
 sudo apt-get install poppler-utils
 ```
 
-* Node.js version >=6
+* Node.js version >=7.6 (`async` functions)
 
 ## Installation
 
@@ -28,6 +28,10 @@ bash parse.sh
 ```
 
 Clears the current database (`database/database.sqlite`) of test data and imports new data from all files in `storage/data-sources/`.
+
+Assumes timezone "Europe/Riga" (+02:00/+03:00).
+
+Stores the time in UTC (loses the (implicit) timezone info).
 
 #### File types
 

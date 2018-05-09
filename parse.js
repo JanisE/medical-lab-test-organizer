@@ -5,37 +5,33 @@ function escapeForRegExp (string)
 }
 
 
-function GetTestConfig ()
+async function GetTestConfig ()
 {
-	return new Promise((fResolve) =>
-	{
-		var aTests = {};
-
-		oDb.each ('SELECT tq.id, specimen_source_type, pattern, type AS pattern_type '
-			+ 'FROM testable_qualities tq '
-			+ 'INNER JOIN search_patterns ON testable_quality_id = tq.id', function (oError, oQuality)
+	return oModels.TestableQuality.findAll({include: {model: oModels.SearchPattern}})
+		.then((aQualities) =>
 		{
-			if (oError) {
-				console.log ('DB error = ', oError);
-			}
-			else {
-				if (! aTests [oQuality.id]) {
-					aTests [oQuality.id] = {
+			const oTests = {};
+
+			_.forEach(aQualities, (oQuality) =>
+			{
+				if (! oTests[oQuality.id]) {
+					oTests[oQuality.id] = {
 						aMarkedBy: [],
 						sSpecimenSourceType: oQuality.specimen_source_type
 					};
 				}
 
-				aTests [oQuality.id].aMarkedBy.push({
-					pattern: oQuality.pattern,
-					type: oQuality.pattern_type
+				_.forEach(oQuality.search_patterns, (oPattern) =>
+				{
+					oTests[oQuality.id].aMarkedBy.push({
+						pattern: oPattern.pattern,
+						type: oPattern.type
+					});
 				});
-			}
-		}, function ()
-		{
-			fResolve(aTests);
+			});
+
+			return oTests;
 		});
-	});
 }
 
 function Parse_VC4 (sSource)
@@ -101,7 +97,6 @@ function Parse_VC4 (sSource)
 			});
 		}
 	});
-
 
 	_.forOwn(oSources, function (oSource)
 	{
@@ -202,50 +197,17 @@ function Parse (sSource)
 	return oParsed;
 }
 
-function GetWaitableDb(sDatabaseFilePath)
+async function SelectAllFromDb (dbPath)
 {
-	var oDb = new sqlite3.Database (sDatabaseFilePath);
+	const oModels = require('./src/models').GetModels(new Sequelize(
+		'sqlite://' + dbPath,
+		{operatorsAliases: false, logging: false}
+	));
 
-	// For use with "wait.for" – the callback must have `(error, result)` parameters, not the result being in `this`.
-	oDb.runStandardised = function (sQuery, oParams, fStandardCallback)
-	{
-		this.run (sQuery, oParams, function (oErr)
-		{
-			return fStandardCallback (oErr, this);
-		});
-	};
-
-	return oDb;
-}
-
-function SelectAllFromDb (dbPath, fCallback)
-{
-	return new Promise(function (fResolve)
-	{
-		var oDb = GetWaitableDb(dbPath);
-
-		var aTestsTaken = [];
-
-		oDb.each('SELECT testable_quality_id, specimen_collection_time, result_value, ref, created_at, updated_at '
-			+ 'FROM taken_tests', function (oError, oTakenTest)
-		{
-			if (oError) {
-				console.log('DB error = ', oError);
-			}
-			else {
-				aTestsTaken.push(oTakenTest)
-			}
-		}, function ()
-		{
-			fCallback(null, aTestsTaken);	// For `wait.for`.
-			fResolve(aTestsTaken);
-		});
-	});
+	return oModels.TakenTest.findAll({raw: true});
 }
 
 /**
- * TODO Use http://docs.sequelizejs.com/manual/tutorial/models-definition.html or http://bookshelfjs.org/#Model-subsection-construction
- *
  * @param {array} oTestResults As returned by "Parse".
  * @param {string} sReference
  */
@@ -254,62 +216,92 @@ function GetTestResultsInDbFormat (oTestResults, sReference)
 	const aRows = [];
 
 	_.forOwn(oTestResults, (oResult, sTestableQualityId) => {
-		aRows.push({
+		aRows.push(new oModels.TakenTest({
 			testable_quality_id: sTestableQualityId,
-			specimen_collection_time: oResult.oCollectedAt.unix(),
+			specimen_collection_time: oResult.oCollectedAt,
 			result_value: oResult.mResult,
-			ref: sReference,
-			created_at: undefined,
-			updated_at: undefined
-		});
+			ref: sReference
+		}));
 	});
 
 	return aRows;
 }
 
 
-function UpdateToDb (aTestResults)
+async function UpdateToDb (aTestResults)
 {
-	var iResultsToUpdate = _.size (aTestResults);
-	var iResultsUpdated = 0;
-
-	// A transaction gives a huge performance boost, in SQLite: http://stackoverflow.com/questions/18899828/best-practices-for-using-sqlite3-node-js.
 	// TODO Detect and think what to do when overwriting (maybe even within the same oTestResults).
-	wait.forMethod(oDb, 'run', 'BEGIN TRANSACTION');
-	_.forEach(aTestResults, function (oResult)
-	{
-		var oValues = {
-			':testable_quality_id': oResult.testable_quality_id,
-			':result_value': oResult.result_value,
-			':specimen_collection_time': oResult.specimen_collection_time,
-			':ref': oResult.ref
-		};
+	// A transaction gives a huge performance boost, in SQLite:
+	// http://stackoverflow.com/questions/18899828/best-practices-for-using-sqlite3-node-js.
+	return oDb
+		.transaction(async oTransaction =>
+		{
+			// A non-bulk (slower) version for inserting or updating un duplicates.
+			let iUpdated = 0;
 
-		// In case the result row already exists.
-		iResultsUpdated += wait.forMethod (oDb, 'runStandardised',
-			'UPDATE taken_tests SET result_value = :result_value, ref = :ref, updated_at = DATETIME() ' +
-			'WHERE testable_quality_id = :testable_quality_id AND specimen_collection_time = :specimen_collection_time AND ref = :ref',
-			oValues
-		).changes;
+			for (const oTestResult of aTestResults) {
+				const oTestResultValues = oTestResult instanceof oModels.TakenTest ? oTestResult.get() : oTestResult;
 
-		// In case the result row didn't exist.
-		iResultsUpdated += wait.forMethod (oDb, 'runStandardised',
-			'INSERT OR IGNORE INTO taken_tests (testable_quality_id, result_value, specimen_collection_time, ref, created_at) ' +
-			'VALUES (:testable_quality_id, :result_value, :specimen_collection_time, :ref, DATETIME())',
-			oValues
-		).changes;
-	});
-    wait.forMethod(oDb, 'run', 'END');
+				await oModels.TakenTest.findOrCreate({
+					where: {
+						testable_quality_id: oTestResult.testable_quality_id,
+						specimen_collection_time: oTestResult.specimen_collection_time,
+						ref: oTestResult.ref
+					},
+					defaults: oTestResultValues,
+					transaction: oTransaction
+				}).spread((oTakenTest, bCreated) =>
+				{
+					if (! bCreated) {
+						oTakenTest.set(oTestResultValues);
+						if (oTakenTest.changed()) {
+							oTakenTest.save();	// `save` includes `changed` check, but we need it for iUpdated.
+							iUpdated++;
+						}
+						// Else: DB has the same values already.
+					}
+					else {
+						iUpdated++;
+					}
+				}).catch(oError =>
+				{
+					console.log('UpdateToDb failed for ', oTestResult);
+					throw oError;
+				});
+			}
 
-	return {
-		iResultsToUpdate: iResultsToUpdate,
-		iResultsUpdated: iResultsUpdated
-	};
+			return iUpdated;
+
+			// A bulk version if we keep the existing values:
+//			return oModels.TakenTest.bulkCreate(
+//				(aTestResults[0] instanceof oModels.TakenTest
+//					? aTestResults.map(oModel => oModel.get())
+//					: aTestResults
+//				), {
+//					fields: ['testable_quality_id', 'result_value', 'specimen_collection_time', 'ref'],
+//					// TODO Do I need to manually set transaction?
+//					transaction: oTransaction,
+//					ignoreDuplicates: true
+//				});
+		})
+		.then(iUpdated =>
+		{
+			return {
+				iResultsToUpdate: _.size(aTestResults),
+				// Used `aRecords.length` in case of `bulkCreate`, but it counted ignored rows as updated, too.
+				iResultsUpdated: iUpdated
+			};
+		})
+		.catch(oError =>
+		{
+			console.log('UpdateToDb failed: ', oError);
+			throw oError;
+		});
 }
 
-function ClearTakenTestData ()
+async function ClearTakenTestData ()
 {
-	wait.forMethod(oDb, 'run', 'DELETE FROM taken_tests');
+	return oModels.TakenTest.truncate();
 }
 
 function EscapeForShell (sCmd)
@@ -327,13 +319,6 @@ const moment = require ('moment-timezone');
 const readChunk = require('read-chunk');
 const fFileType = require('file-type');
 const oFileSystem = require('fs');
-
-// For easier calling asynchronous functions with callback parameters synchronously.
-var wait = require ('wait.for');
-
-var sqlite3 = require ('sqlite3').verbose ();
-
-var oDb = GetWaitableDb('database/database.sqlite');
 
 var fExecute = require ('child_process').execSync;
 //var fReadFile = require('fs').readFileSync; var sRawText = fReadFile('dev/tests.txt', {encoding: 'UTF-8'});
@@ -373,7 +358,7 @@ function GetFileType (sFilePath)
 	return sFileType;
 }
 
-function ProcessSourceFiles ()
+async function ProcessSourceFiles ()
 {
 	var iTotal = 0;
 	var aTestResultsToImport = [];
@@ -392,16 +377,16 @@ function ProcessSourceFiles ()
 			aTestResultsToImport = GetTestResultsInDbFormat(oParsed, path.basename(filePath));
 
 			iTotal += _.size(aTestResultsToImport);
-			console.log(UpdateToDb(aTestResultsToImport));
+			console.log(await UpdateToDb(aTestResultsToImport));
 			break;
 
 		case 'application/x-sqlite3':
 			console.log('Importing ' + fileType + ': ' + filePath + ')...');
 
-			aTestResultsToImport = wait.for(SelectAllFromDb, filePath);
+			aTestResultsToImport = await SelectAllFromDb(filePath);
 
 			iTotal += _.size(aTestResultsToImport);
-			console.log(UpdateToDb (aTestResultsToImport, path.basename(filePath)));
+//			console.log(await UpdateToDb (aTestResultsToImport, path.basename(filePath)));
 			break;
 
 		default:
@@ -412,12 +397,20 @@ function ProcessSourceFiles ()
 	console.log('Total qualities recognised: ', iTotal);
 }
 
-GetTestConfig ().done (async function (aTests)
-{
-	Parse.aTests = aTests;
 
-	wait.launchFiber(() => {
-		ClearTakenTestData();
-		ProcessSourceFiles();
-	});
-});
+const Sequelize = require('sequelize');
+const oDb = new Sequelize(
+	'sqlite://./database/database.sqlite',
+	{operatorsAliases: false, logging: true}
+);
+
+const oModels = require('./src/models').GetModels(oDb);
+
+(async function Main()
+{
+	Parse.aTests = await GetTestConfig();
+
+	await ClearTakenTestData();
+
+	return ProcessSourceFiles();
+})();

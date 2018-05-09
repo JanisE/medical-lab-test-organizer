@@ -7,7 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class TakenTest extends Model
 {
 	protected $dates = ['specimen_collection_time'];
-	protected $dateFormat = 'U';
+
+	// Match the format in sequelize/lib/data-types.js:DATE.prototype._stringify
+	// 'YYYY-MM-DD HH:mm:ss.SSS Z'
+	// Using tokens as defined on https://momentjs.com/docs/#/displaying/
+	protected $dateFormat = 'Y-m-d H:i:s.v P';
+	//	protected $dateFormat = 'U';
 
 	public function testableQuality ()
 	{

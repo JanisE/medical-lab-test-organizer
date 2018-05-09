@@ -13,13 +13,15 @@ class CreateTestNamesTable extends Migration
      */
     public function up()
     {
+		Schema::enableForeignKeyConstraints();
+
         Schema::create('test_names', function (Blueprint $table) {
 			$table->string('id', 32);
 			$table->text('name_lv')->nullable();
 			$table->text('name_en')->nullable();
 
-			$table->foreign('id')->references('id')->on('testable_qualities');
 			$table->primary('id');
+			$table->foreign('id')->references('id')->on('testable_qualities');
         });
     }
 

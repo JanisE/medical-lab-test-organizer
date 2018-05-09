@@ -14,13 +14,13 @@ class CreateSearchPatternsTable extends Migration
     public function up()
     {
         Schema::create('search_patterns', function (Blueprint $table) {
-            $table->increments('id');
+            $table->increments('id'); // Implies primary.
 			$table->string('testable_quality_id', 32);
 			$table->string('type', 16)->default('literal');
-			$table->string('pattern')->text();
+//			$table->string('pattern',255)->text(); TODO debug - what was text doing here?
+			$table->string('pattern',255);
 
 			$table->foreign('testable_quality_id')->references('id')->on('testable_qualities');
-			$table->index('testable_quality_id');
         });
     }
 

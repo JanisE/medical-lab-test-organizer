@@ -13,6 +13,8 @@ class CreateTestableQualitiesTable extends Migration
      */
     public function up()
     {
+		Schema::enableForeignKeyConstraints();
+
         Schema::create('testable_qualities', function (Blueprint $table) {
             $table->string('id', 32);
             $table->string('specimen_source_type', 16);
@@ -23,7 +25,8 @@ class CreateTestableQualitiesTable extends Migration
 			$table->text('comments')->nullable();
 
 			$table->primary('id');
-			$table->foreign('test_class_id')->references('id')->on('test_classes');
+			$table->foreign('test_class_id', 'fk_testable_qualities_on_test_classes')
+				->references('id')->on('test_classes');
         });
     }
 

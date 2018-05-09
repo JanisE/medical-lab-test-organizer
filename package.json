@@ -24,7 +24,7 @@
         "lodash": "^4.17.4",
         "moment-timezone": "^0.5.16",
         "read-chunk": "^2.1.0",
-        "sqlite3": "^4.0.0",
-        "wait.for": "^0.6.6"
+        "sequelize": "^4.37.6",
+        "sqlite3": "^4.0.0"
     }
 }
