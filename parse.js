@@ -1,19 +1,35 @@
+const _ = require('lodash');
+//const Promise = require('bluebird'); // Sequelize uses its own Bluebird Promise internally.
+
+const path = require('path');
+
+const moment = require('moment-timezone');
+
+const readChunk = require('read-chunk');
+const fFileType = require('file-type');
+const oFileSystem = require('fs');
+
+const fExecute = require('child_process').execSync;
+//var fReadFile = require('fs').readFileSync; var sRawText = fReadFile('dev/tests.txt', {encoding: 'UTF-8'});
+
+const Sequelize = require('sequelize');
+
+
+
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-function escapeForRegExp (string)
-{
-	return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function escapeForRegExp (string) {
+	return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-
-async function GetTestConfig ()
-{
-	return oModels.TestableQuality.findAll({include: {model: oModels.SearchPattern}})
-		.then((aQualities) =>
-		{
+/**
+ * @return {Promise<Object>} Configuration map.
+ */
+function getTestConfig () {
+	return oModels.TestableQuality.findAll({include: {model: oModels.SearchPattern}}) // eslint-disable-line no-use-before-define
+		.then((aQualities) => {
 			const oTests = {};
 
-			_.forEach(aQualities, (oQuality) =>
-			{
+			_.forEach(aQualities, (oQuality) => {
 				if (! oTests[oQuality.id]) {
 					oTests[oQuality.id] = {
 						aMarkedBy: [],
@@ -21,8 +37,7 @@ async function GetTestConfig ()
 					};
 				}
 
-				_.forEach(oQuality.search_patterns, (oPattern) =>
-				{
+				_.forEach(oQuality.search_patterns, (oPattern) => {
 					oTests[oQuality.id].aMarkedBy.push({
 						pattern: oPattern.pattern,
 						type: oPattern.type
@@ -34,15 +49,13 @@ async function GetTestConfig ()
 		});
 }
 
-function Parse_VC4 (sSource)
-{
-	var oParsed = {};
+function parseVC4 (sSource) {
+	const oParsed = {};
 
-	var oSources = [];
-	sSource.replace (/Materiāls[\s\S]+?Izpildītāj(?:s|i)/g, function (sSingleSource)
-	{
-		var sSpecimenSourceType = 'Unexpected';
-		var sSpecimenSourceTypeRaw = sSingleSource.match (/Materiāla tips:\s+(.+)/)[1];
+	const oSources = [];
+	sSource.replace(/Materiāls[\s\S]+?Izpildītāj(?:s|i)/g, (sSingleSource) => {
+		let sSpecimenSourceType = 'Unexpected';
+		const [, sSpecimenSourceTypeRaw] = sSingleSource.match(/Materiāla tips:\s+(.+)/);
 		switch (sSpecimenSourceTypeRaw) {
 		case 'Urīns':
 			sSpecimenSourceType = 'urine';
@@ -62,23 +75,23 @@ function Parse_VC4 (sSource)
 			sSpecimenSourceType = 'blood_serum';
 			break;
 		default:
-			console.log ('Unepxected specimen source type: ', sSpecimenSourceTypeRaw);
+			console.log('Unepxected specimen source type: ', sSpecimenSourceTypeRaw);
 		}
 
-		var sCollectedAt;
+		let sCollectedAt;
 		try {
-			sCollectedAt = sSingleSource.match (/Materiāla paņemš.datums\/laiks:\s+(\d+\.\d+\.\d+ \d+:\d+)\b/)[1];
+			sCollectedAt = sSingleSource.match(/Materiāla paņemš.datums\/laiks:\s+(\d+\.\d+\.\d+ \d+:\d+)\b/)[1];
 		}
-		catch (oException) {
+		catch (oException1) {
 			try {
-				sCollectedAt = sSingleSource.match (/Materiāla paņemš.datums\/laiks:\s+(\d+\.\d+\.\d+)\b/)[1] + ' 00:00';
+				sCollectedAt = sSingleSource.match(/Materiāla paņemš.datums\/laiks:\s+(\d+\.\d+\.\d+)\b/)[1] + ' 00:00';
 			}
-			catch (oException) {
-				console.log ('Registration time used as the specimen collection time!');
+			catch (oException2) {
+				console.log('Registration time used as the specimen collection time!');
 				try {
 					sCollectedAt = sSingleSource.match(/Reģistrācijas datums: (\d+\.\d+\.\d+ \d+:\d+)\b/)[1];
 				}
-				catch (oException) {
+				catch (oException3) {
 					console.log('No kind of specimen collection time could be guessed: ', sSingleSource);
 					return;
 				}
@@ -98,36 +111,35 @@ function Parse_VC4 (sSource)
 		}
 	});
 
-	_.forOwn(oSources, function (oSource)
-	{
-		_.forEach(Parse.aTests, function (oTest, sTestKey)
-		{
+	_.forOwn(oSources, (oSource) => {
+		_.forEach(parse.aTests, (oTest, sTestKey) => {
 			if (oSource.sSpecimenSourceType === oTest.sSpecimenSourceType) {
-				for (var iPattern = oTest.aMarkedBy.length - 1; iPattern >= 0; iPattern--) {
+				for (let iPattern = oTest.aMarkedBy.length - 1; iPattern >= 0; iPattern--) {
 					if (oTest.aMarkedBy[iPattern].type != 'literal' && oTest.aMarkedBy[iPattern].type != 'regexp') {
 						console.error('Unexpected pattern type: ', oTest.aMarkedBy[iPattern]);
 					}
 
-					var oMatches = oSource.sSource.match(
+					const oMatches = oSource.sSource.match(
 						// [^\S\r\n] = any space character except new lines.
 						new RegExp(
 							'^[^\\S\\r\\n]*([<>!]+[^\\S\\r\\n]+)?'
 							+ (
 								oTest.aMarkedBy[iPattern].type == 'regexp'
 								// NB! Use non-capturing sub-patterns [(?:x)] when using the "regexp" type pattern!
-								? oTest.aMarkedBy[iPattern].pattern
-								: escapeForRegExp(oTest.aMarkedBy[iPattern].pattern)
-									.replace(' ', ' +')	// Allow for several space characters when space is expected.
+									? oTest.aMarkedBy[iPattern].pattern
+									: escapeForRegExp(oTest.aMarkedBy[iPattern].pattern)
+										.replace(' ', ' +')	// Allow for several space characters when space is expected.
 							)
-							// [^\\s\\d]+ {1, 3}[\\S\\d]+ e.g. 'gaiši brūna', 'nav atrasts'. Up to 3 space, because there were such cases in old PDFs.
+							// [^\\s\\d]+ {1, 3}[\\S\\d]+ e.g. 'gaiši brūna', 'nav atrasts'.
+							// Up to 3 space, because there were such cases in old PDFs.
 							+ '[^\\S\\r\\n]+([^\\s\\d]+ {1,3}[\\S\\d]+|(< |> )?[\\S]+)',
 							'm'
 						)
 					);
 
 					if (oMatches) {
-						oParsed [sTestKey] = {
-							mResult: oMatches [2],
+						oParsed[sTestKey] = {
+							mResult: oMatches[2],
 							oCollectedAt: oSource.sSpecimenCollectedAt
 						};
 						// console.log('Collected results for ', sTestKey, ': ', oParsed[sTestKey].mResult);
@@ -158,9 +170,8 @@ function Parse_VC4 (sSource)
 }
 
 // http://labtestsonline.org/map/aindex http://www.egl.lv/analīzes http://www.mayomedicallaboratories.com/index.html
-function Parse (sSource)
-{
-	var oParsed = {};
+function parse (sSource) {
+	let oParsed = {};
 
 	if (
 		sSource.indexOf('Medicīnas centrs "Veselibas Centrs - 4" Testēšanas laboratorija') > -1
@@ -169,21 +180,21 @@ function Parse (sSource)
 		|| sSource.indexOf('SIA "Veselības Centrs 4" Laboratorija') > -1
 		|| sSource.indexOf('SIA "Veselibas Centrs - 4" Testēšanas laboratorija') > -1
 	) {
-		oParsed = Parse_VC4(sSource);
+		oParsed = parseVC4(sSource);
 	}
 	else if (sSource.indexOf('SIA "NMS-LABORATORIJA"') > -1) {
 		// NVMC format is very much like VC4, except for the mess with PDF encoding.
 		console.log('No support for the messy NVMC PDF.');
 
 		// vvv No, this works for too few cases.
-		// Try to recover some important characters for the algorithm in "Parse_VC4" to work.
+		// Try to recover some important characters for the algorithm in "parseVC4" to work.
 //		sSource = sSource.replace(/[✁✝✡✩ ]/g, 'ā');
 //		sSource = sSource.replace(/[✌☞]/g, 'ē');
 //		sSource = sSource.replace(/[✠]/g, 'ģ');
 //		sSource = sSource.replace(/[✟]/g, 'ī');
 //		sSource = sSource.replace(/[☛]/g, 'ņ');
-
-//		oParsed = Parse_VC4(sSource);
+//
+//		oParsed = parseVC4(sSource);
 //		console.log('Collected ', _.size(oParsed), ' results.');
 	}
 	else if (sSource.indexOf('egl.lv') > -1) {
@@ -197,9 +208,13 @@ function Parse (sSource)
 	return oParsed;
 }
 
-async function SelectAllFromDb (dbPath)
-{
-	const oModels = require('./src/models').GetModels(new Sequelize(
+/**
+ * @param {string} dbPath Path to the DB file.
+ *
+ * @return {Promise<Array<TakenTest>>} A list of TakenTest's.
+ */
+function selectAllFromDb (dbPath) {
+	const oModels = require('./src/models').getModels(new Sequelize(
 		'sqlite://' + dbPath,
 		{operatorsAliases: false, logging: false}
 	));
@@ -208,19 +223,22 @@ async function SelectAllFromDb (dbPath)
 }
 
 /**
- * @param {array} oTestResults As returned by "Parse".
- * @param {string} sReference
+ * @param {Array} oTestResults As returned by "parse".
+ * @param {string} sReference Record source reference.
+ *
+ * @return {Array} Array of TakenTest's.
  */
-function GetTestResultsInDbFormat (oTestResults, sReference)
-{
+function getTestResultsInDbFormat (oTestResults, sReference) {
 	const aRows = [];
 
 	_.forOwn(oTestResults, (oResult, sTestableQualityId) => {
-		aRows.push(new oModels.TakenTest({
+		aRows.push(new oModels.TakenTest({ 	// eslint-disable-line no-use-before-define
+			/* eslint-disable camelcase */
 			testable_quality_id: sTestableQualityId,
 			specimen_collection_time: oResult.oCollectedAt,
 			result_value: oResult.mResult,
 			ref: sReference
+			/* eslint-enable camelcase */
 		}));
 	});
 
@@ -228,14 +246,17 @@ function GetTestResultsInDbFormat (oTestResults, sReference)
 }
 
 
-async function UpdateToDb (aTestResults)
-{
+/**
+ * @param {TakenTest[]|Object[]} aTestResults Test results to insert/update.
+ *
+ * @return {Promise<{iResultsToUpdate: number, iResultsUpdated: number}>} Updating status.
+ */
+function updateToDb (aTestResults) {
 	// TODO Detect and think what to do when overwriting (maybe even within the same oTestResults).
 	// A transaction gives a huge performance boost, in SQLite:
 	// http://stackoverflow.com/questions/18899828/best-practices-for-using-sqlite3-node-js.
 	return oDb
-		.transaction(async oTransaction =>
-		{
+		.transaction(async oTransaction => {
 			// A non-bulk (slower) version for inserting or updating un duplicates.
 			let iUpdated = 0;
 
@@ -244,14 +265,15 @@ async function UpdateToDb (aTestResults)
 
 				await oModels.TakenTest.findOrCreate({
 					where: {
+						/* eslint-disable camelcase */
 						testable_quality_id: oTestResult.testable_quality_id,
 						specimen_collection_time: oTestResult.specimen_collection_time,
 						ref: oTestResult.ref
+						/* eslint-enable camelcase */
 					},
 					defaults: oTestResultValues,
 					transaction: oTransaction
-				}).spread((oTakenTest, bCreated) =>
-				{
+				}).spread((oTakenTest, bCreated) => {
 					if (! bCreated) {
 						oTakenTest.set(oTestResultValues);
 						if (oTakenTest.changed()) {
@@ -263,11 +285,11 @@ async function UpdateToDb (aTestResults)
 					else {
 						iUpdated++;
 					}
-				}).catch(oError =>
-				{
-					console.log('UpdateToDb failed for ', oTestResult);
-					throw oError;
-				});
+				})
+					.catch(oError => {
+						console.log('updateToDb failed for ', oTestResult);
+						throw oError;
+					});
 			}
 
 			return iUpdated;
@@ -284,54 +306,36 @@ async function UpdateToDb (aTestResults)
 //					ignoreDuplicates: true
 //				});
 		})
-		.then(iUpdated =>
-		{
+		.then(iUpdated => {
 			return {
 				iResultsToUpdate: _.size(aTestResults),
 				// Used `aRecords.length` in case of `bulkCreate`, but it counted ignored rows as updated, too.
 				iResultsUpdated: iUpdated
 			};
 		})
-		.catch(oError =>
-		{
-			console.log('UpdateToDb failed: ', oError);
+		.catch(oError => {
+			console.log('updateToDb failed: ', oError);
 			throw oError;
 		});
 }
 
-async function ClearTakenTestData ()
-{
+/**
+ * @return {Promise} Resolves when done.
+ */
+function clearTakenTestData () {
 	return oModels.TakenTest.truncate();
 }
 
-function EscapeForShell (sCmd)
-{
-	return sCmd.replace (/(["\s'$`\\])/g,'\\$1');
+function escapeForShell (sCmd) {
+	return sCmd.replace(/(["\s'$`\\])/g, '\\$1');
 }
 
-const _ = require ('lodash');
-const Promise = require('bluebird');
-
-const path = require('path');
-
-const moment = require ('moment-timezone');
-
-const readChunk = require('read-chunk');
-const fFileType = require('file-type');
-const oFileSystem = require('fs');
-
-var fExecute = require ('child_process').execSync;
-//var fReadFile = require('fs').readFileSync; var sRawText = fReadFile('dev/tests.txt', {encoding: 'UTF-8'});
-
-//var aPdfFiles = ['dev/tests.pdf'];
-var aPdfFiles = process.argv.slice (2);
-
 /**
- * @param {string} sFilePath
- * @return {string}
+ * @param {string} sFilePath File path.
+ *
+ * @return {string} File type.
  */
-function GetFileType (sFilePath)
-{
+function getFileType (sFilePath) {
 	let sFileType = '';
 
 	try {
@@ -340,7 +344,8 @@ function GetFileType (sFilePath)
 			sFileType = 'nonfile';
 		}
 		else {
-			const oFileType = fFileType(readChunk.sync(sFilePath, 0, 4100));
+			const maxBytesForDeterminingFileType = 4100;
+			const oFileType = fFileType(readChunk.sync(sFilePath, 0, maxBytesForDeterminingFileType));
 
 			if (oFileType) {
 				sFileType = oFileType.mime;
@@ -358,35 +363,34 @@ function GetFileType (sFilePath)
 	return sFileType;
 }
 
-async function ProcessSourceFiles ()
-{
-	var iTotal = 0;
-	var aTestResultsToImport = [];
+async function processSourceFiles () {
+	let iTotal = 0;
+	let aTestResultsToImport = [];
 
 	for (const filePath of aPdfFiles) {
-		const fileType = GetFileType(filePath);
+		const fileType = getFileType(filePath);
 
 		switch (fileType) {
 		case 'application/pdf':
 			console.log('Importing ' + fileType + ': ' + filePath + ')...');
 
-			var oParsed = Parse(fExecute(
-				'pdftotext -layout ' + EscapeForShell(filePath) + ' -',
+			const oParsed = parse(fExecute(
+				'pdftotext -layout ' + escapeForShell(filePath) + ' -',
 				{encoding: 'UTF-8'}
 			));
-			aTestResultsToImport = GetTestResultsInDbFormat(oParsed, path.basename(filePath));
+			aTestResultsToImport = getTestResultsInDbFormat(oParsed, path.basename(filePath));
 
 			iTotal += _.size(aTestResultsToImport);
-			console.log(await UpdateToDb(aTestResultsToImport));
+			console.log(await updateToDb(aTestResultsToImport));
 			break;
 
 		case 'application/x-sqlite3':
 			console.log('Importing ' + fileType + ': ' + filePath + ')...');
 
-			aTestResultsToImport = await SelectAllFromDb(filePath);
+			aTestResultsToImport = await selectAllFromDb(filePath);
 
 			iTotal += _.size(aTestResultsToImport);
-//			console.log(await UpdateToDb (aTestResultsToImport, path.basename(filePath)));
+//			console.log(await updateToDb (aTestResultsToImport, path.basename(filePath)));
 			break;
 
 		default:
@@ -398,19 +402,21 @@ async function ProcessSourceFiles ()
 }
 
 
-const Sequelize = require('sequelize');
+
+
+const [, , ...aPdfFiles] = process.argv;
+
 const oDb = new Sequelize(
 	'sqlite://./database/database.sqlite',
 	{operatorsAliases: false, logging: true}
 );
 
-const oModels = require('./src/models').GetModels(oDb);
+const oModels = require('./src/models').getModels(oDb);
 
-(async function Main()
-{
-	Parse.aTests = await GetTestConfig();
+(async function Main () {
+	parse.aTests = await getTestConfig();
 
-	await ClearTakenTestData();
+	await clearTakenTestData();
 
-	return ProcessSourceFiles();
-})();
+	return processSourceFiles();
+}());

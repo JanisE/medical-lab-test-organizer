@@ -1,11 +1,12 @@
 const Sequelize = require('sequelize');
 
-
-function GetModels (sequelize)
-{
+function getModels (sequelize) {
 	// Building a DB model as similar as possible to that built by Laravel.
 	// There are various differences (varchar lengths, non-null timestamps, explicitly nullable fields),
 	// but they are not critical as long as we can read and update the DB as we need it.
+
+	/* eslint-disable camelcase */
+	/* eslint-disable no-magic-numbers */
 
 	// Reproduces 2017_05_10_065054_create_test_classes_table.php
 	const TestClass = sequelize.define(
@@ -85,13 +86,15 @@ function GetModels (sequelize)
 		TakenTest: TakenTest,
 		SearchPattern: SearchPattern,
 		TestName: TestName
-	}
+	};
+
+	/* eslint-enable camelcase */
+	/* eslint-enable no-magic-numbers */
 }
 
 // For testing.
-function CreateTables (sequelize)
-{
-	const oModels = GetModels(sequelize);
+function createTables (sequelize) {
+	const oModels = getModels(sequelize);
 
 	oModels.TestClass.sync();
 	oModels.TestableQuality.sync();
@@ -100,7 +103,9 @@ function CreateTables (sequelize)
 	oModels.TestName.sync();
 }
 
-module.exports = exports = {
-	GetModels: GetModels,
-	CreateTables: CreateTables
+exports = {
+	getModels: getModels,
+	createTables: createTables
 };
+
+module.exports = exports;
