@@ -11,6 +11,8 @@
 |
 */
 
+use Illuminate\Support\Facades\Route;
+
 Route::get('/', function ()
 {
     return view('index');
@@ -23,6 +25,12 @@ Route::get('/all', function ()
 
 	$aTestResults = App\TakenTest::orderBy('specimen_collection_time', 'asc')
 		->get()
+		->map(function ($oResult)
+		{
+			$oResult->specimen_collection_time = $oResult->specimen_collection_time->setTimezone(config('app.timezone'));
+
+			return $oResult;
+		})
 		->groupBy(function($oResult)
 		{
 			return $oResult->specimen_collection_time->format('Y-m-d');

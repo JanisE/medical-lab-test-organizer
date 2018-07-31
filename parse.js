@@ -213,13 +213,23 @@ function parse (sSource) {
  *
  * @return {Promise<Array<TakenTest>>} A list of TakenTest's.
  */
-function selectAllFromDb (dbPath) {
+async function selectAllFromDb (dbPath) {
 	const oModels = require('./src/models').getModels(new Sequelize(
 		'sqlite://' + dbPath,
 		{operatorsAliases: false, logging: false}
 	));
 
-	return oModels.TakenTest.findAll({raw: true});
+	const aDbRows = await oModels.TakenTest.findAll({raw: true});
+
+	const rgIsTimestamp = new RegExp('^\\d{10}$');
+	for (let i = aDbRows.length - 1; i >= 0; i--) {
+		// Support importing from the old format (time in Unix timestamp format).
+		if (rgIsTimestamp.test(aDbRows[i].specimen_collection_time)) {
+			aDbRows[i].specimen_collection_time = aDbRows[i].specimen_collection_time * 1000;
+		}
+	}
+
+	return aDbRows;
 }
 
 /**
@@ -390,7 +400,7 @@ async function processSourceFiles () {
 			aTestResultsToImport = await selectAllFromDb(filePath);
 
 			iTotal += _.size(aTestResultsToImport);
-//			console.log(await updateToDb (aTestResultsToImport, path.basename(filePath)));
+			console.log(await updateToDb(aTestResultsToImport));
 			break;
 
 		default:
@@ -408,7 +418,7 @@ const [, , ...aPdfFiles] = process.argv;
 
 const oDb = new Sequelize(
 	'sqlite://./database/database.sqlite',
-	{operatorsAliases: false, logging: true}
+	{operatorsAliases: false, logging: false}
 );
 
 const oModels = require('./src/models').getModels(oDb);
