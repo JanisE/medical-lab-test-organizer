@@ -29,6 +29,8 @@ bash parse.sh
 
 Clears the current database (`database/database.sqlite`) of test data and imports new data from all files in `storage/data-sources/`.
 
+Stores the file names as source references, so meaningful file names are advisable.
+
 Assumes timezone "Europe/Riga" (+02:00/+03:00).
 
 Stores the time in UTC (loses the (implicit) timezone info).
@@ -71,6 +73,15 @@ Launches a server that serves a website accessible at [http://127.0.0.1:8000](ht
 ## Examples
 
 Not yet.
+
+## Development
+
+### DB seeding
+
+* Create/update the seed data from the current database by:
+```bash
+bash dev/createSeedData.sh
+```
 
 ## Contribution
 
