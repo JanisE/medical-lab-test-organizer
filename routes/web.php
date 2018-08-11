@@ -50,19 +50,17 @@ function GetAllTestResults () {
 Route::get('/all-for-printing', function ()
 {
 	$aTestClasses = App\TestClass::orderBy('order', 'asc')->get();
+	$aAllTestResults = GetAllTestResults();
 
-	$aTestResultsInChunks = GetAllTestResults()->chunk(16);
-
-    return view('results', compact('aTestClasses', 'aTestResultsInChunks'));
+    return view('results', compact('aTestClasses', 'aAllTestResults'));
 });
 
 Route::get('/all-for-big-screens', function ()
 {
 	$aTestClasses = App\TestClass::orderBy('order', 'asc')->get();
+	$aAllTestResults = GetAllTestResults();
 
-	$aTestResultsInChunks = [GetAllTestResults()];
-
-	return view('results-with-datatables', compact('aTestClasses', 'aTestResultsInChunks'));
+	return view('results-with-datatables', compact('aTestClasses', 'aAllTestResults'));
 });
 
 Route::get('/last', function ()

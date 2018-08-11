@@ -24,9 +24,7 @@
 			{{--Analīzes--}}
 		{{--</div>--}}
 
-		@foreach ($aTestResultsInChunks as $aTestResults)
-			@include('table-with-datatables')
-		@endforeach
+		@include('table-with-datatables', ['aTestResults' => $aAllTestResults])
 
 	</div>
 </div>

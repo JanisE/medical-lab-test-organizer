@@ -21,7 +21,7 @@
 			{{--Analīzes--}}
 		{{--</div>--}}
 
-		@foreach ($aTestResultsInChunks as $aTestResults)
+		@foreach ($aAllTestResults->chunk(16) as $aTestResults)
 			@include('table')
 		@endforeach
 
