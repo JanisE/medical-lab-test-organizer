@@ -1,11 +1,12 @@
-@php ($displayQualitiesFooter = false)
-
 <table>
 	<thead>
 
 	@section('date_header')
 		<tr>
-			<th colspan="4"></th>
+			{{-- No colspan for DataTables and its FreezeColumns plug-in to work. --}}
+			@for ($i = 5; $i > 0; $i--)
+				<th></th>
+			@endfor
 
 			@foreach ($aTestResults as $sDate => $aDate)
 				<?php $oTime = $aDate->first()->specimen_collection_time; ?>
@@ -14,10 +15,6 @@
 					{{$oTime->format('d.m.')}}
 				</th>
 			@endforeach
-
-			@if ($displayQualitiesFooter)
-				<th colspan="4"></th>
-			@endif
 		</tr>
 	@overwrite
 	@yield('date_header')
@@ -34,7 +31,12 @@
 		@if (true)
 
 		<tr class="test_class">
-			<th colspan="{{4 + count($aTestResults) + ($displayQualitiesFooter ? 4 : 0)}}">{{$aTestClass->name_lv}}</th>
+			{{-- No colspan for DataTables and its FreezeColumns plug-in to work. --}}
+			<th></th>
+			<th>{{$aTestClass->name_lv}}</th>
+			@for ($i = 4 + count($aTestResults) - 1; $i > 0; $i--)
+				<th></th>
+			@endfor
 		</tr>
 
 		@foreach ($aTestClass->testableQualities as $aTest)
@@ -44,6 +46,8 @@
 
 			<tr title="{{$aTest->testName->name_lv or $aTest->id}}">
 				@section('qualities_header')
+					{{-- The class row is for using DataTables' rowGroup plug-in, which is not used now (because of its incompatibility with the FreezeColumns plug-in). --}}
+					<th>{{$aTestClass->name_lv}}</th>
 					<th>{{$aTest->testName->name_lv or $aTest->id}}</th>
 					<th>{{$aTest->unit}}</th>
 					<th class="norms_lower_boundary" title="Norms lower boundary">{{is_numeric($aTest->norms_lower_boundary) ? str_replace('.', ',', $aTest->norms_lower_boundary) : $aTest->norms_lower_boundary}}</th>
@@ -56,10 +60,6 @@
 						{{empty($aDate[$aTest->id]) ? '' : (is_numeric($aDate[$aTest->id]->result_value) ? str_replace('.', ',', $aDate[$aTest->id]->result_value) : $aDate[$aTest->id]->result_value)}}
 					</td>
 				@endforeach
-
-				@if ($displayQualitiesFooter)
-					@yield('qualities_header')
-				@endif
 			</tr>
 
 			{{--@endif--}}

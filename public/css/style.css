@@ -26,10 +26,16 @@ html, body, td, th {
 
 table {
 	border-collapse: collapse;
-	/*page-break-after: auto;*/
-	page-break-after: always;
+	page-break-after: auto;
 	page-break-inside: auto;
+
+	background: #ffffff;
 }
+
+.mode-all-for-printing table {
+	page-break-after: always;
+}
+
 thead {
 	display: table-header-group;
 }
@@ -51,7 +57,8 @@ tbody th.norms_upper_boundary {
 	text-align: right;
 }
 
-tbody th.norms_upper_boundary {
+.mode-all-for-printing tbody th.norms_upper_boundary,
+.mode-last-for-printing tbody th.norms_upper_boundary {
 	border-right: 2px solid #bbbbbb;
 }
 
@@ -83,8 +90,10 @@ tr {
 	page-break-inside: avoid;
 	page-break-after: auto;
 }
-tr.test_class th {
+tr.test_class th,
+tr.test_class td {	/* DataTables generates td. */
 	background: #eeeeee;
+	text-align: left;
 	font-weight: bold;
 }
 

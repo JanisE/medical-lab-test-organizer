@@ -18,12 +18,18 @@ Route::get('/', function ()
     return view('index');
 });
 
-Route::get('/all', function ()
-{
-	//$aAvailableTests = DB::table('available_tests')->get();
-	$aTestClasses = App\TestClass::orderBy('order', 'asc')->get();
-
-	$aTestResults = App\TakenTest::orderBy('specimen_collection_time', 'asc')
+function GetAllTestResults () {
+	return App\TakenTest::orderBy('specimen_collection_time', 'asc')
+//		->where('testable_quality_id', '=', 'Ast')
+//		->orWhere('testable_quality_id', '=', 'Alt')
+//		->orWhere('testable_quality_id', '=', 'Cpk')
+//		->orWhere('testable_quality_id', '=', 'Alp')
+//		->orWhere('testable_quality_id', '=', 'Ggt')
+//		->orWhere('testable_quality_id', '=', 'Amy')
+//		->orWhere('testable_quality_id', '=', 'Lps')
+//		->orWhere('testable_quality_id', '=', 'Tbil')
+//		->orWhere('testable_quality_id', '=', 'Ldh')
+//		->orWhere('testable_quality_id', '=', 'Ceruloplasmin')
 		->get()
 		->map(function ($oResult)
 		{
@@ -39,10 +45,24 @@ Route::get('/all', function ()
 		{
 			return $aDate->keyBy('testable_quality_id');
 		});
+}
 
-	$aTestResultsInChunks = $aTestResults->chunk(16);
+Route::get('/all-for-printing', function ()
+{
+	$aTestClasses = App\TestClass::orderBy('order', 'asc')->get();
+
+	$aTestResultsInChunks = GetAllTestResults()->chunk(16);
 
     return view('results', compact('aTestClasses', 'aTestResultsInChunks'));
+});
+
+Route::get('/all-for-big-screens', function ()
+{
+	$aTestClasses = App\TestClass::orderBy('order', 'asc')->get();
+
+	$aTestResultsInChunks = [GetAllTestResults()];
+
+	return view('results-with-datatables', compact('aTestClasses', 'aTestResultsInChunks'));
 });
 
 Route::get('/last', function ()
@@ -51,7 +71,14 @@ Route::get('/last', function ()
 
 	$aLastResults = [];
 	foreach (App\TestableQuality::all() as $oQuality) {
-		$aLastResults[$oQuality->id] = $oQuality->takenTests()->orderBy('specimen_collection_time', 'desc')->take($iLastCount)->get();
+		$aLastResults[$oQuality->id] = $oQuality->takenTests()->orderBy('specimen_collection_time', 'desc')->take($iLastCount)
+			->get()
+			->map(function ($oResult)
+			{
+				$oResult->specimen_collection_time = $oResult->specimen_collection_time->setTimezone(config('app.timezone'));
+
+				return $oResult;
+			});
 	}
 
 	$aTestClasses = App\TestClass::orderBy('order', 'asc')->get();

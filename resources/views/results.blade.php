@@ -14,7 +14,7 @@
 
 	<link href="css/style.css" rel="stylesheet" type="text/css">
 </head>
-<body>
+<body class="mode-all-for-printing">
 <div class="position-ref">
 	<div class="content">
 		{{--<div class="title m-b-md">--}}
