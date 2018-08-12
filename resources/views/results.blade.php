@@ -16,13 +16,12 @@
 				{{--Analīzes--}}
 			{{--</div>--}}
 
-			@foreach ($aAllTestResults->chunk(16) as $aTestResults)
+			@foreach (Helper::ChunkByDatesMaxLength($aAllTestResults) as $aTestResults)
 				@include('table', [
 					'bDisplayDateFooter' => true,
 					'bHideQualitiesWithNoData' => true
 				])
 			@endforeach
-
 		</div>
 	</div>
 </body>

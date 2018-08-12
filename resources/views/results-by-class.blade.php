@@ -17,18 +17,17 @@
 			{{--</div>--}}
 
 			@foreach ($aTestClasses as $aTestClass)
-				@foreach ($aTestClass->takenTests()
+				@foreach (Helper::ChunkByDatesMaxLength($aTestClass->takenTests()
 					->groupBy(function ($oTakenTest) {
 						return $oTakenTest->specimen_collection_time->format('Y-m-d');
 					})
 					->map(function ($aDate) {
 						return $aDate->keyBy('testable_quality_id');
-					})->chunk(16) as $aTestResults)
-
-					@include('table', [
-						'bDisplayDateFooter' => false,
-						'bHideQualitiesWithNoData' => false
-					])
+					}), 175) as $aTestResults)
+						@include('table', [
+							'bDisplayDateFooter' => false,
+							'bHideQualitiesWithNoData' => false
+						])
 				@endforeach
 			@endforeach
 		</div>

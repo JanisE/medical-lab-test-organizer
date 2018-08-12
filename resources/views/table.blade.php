@@ -69,7 +69,7 @@
 
 					@foreach ($aTestResults as $aDate)
 						<td class="{{empty($aDate[$aTest->id]) ? '' : $aDate[$aTest->id]->assessment()}}">
-							{{empty($aDate[$aTest->id]) ? '' : (is_numeric($aDate[$aTest->id]->result_value) ? str_replace('.', ',', $aDate[$aTest->id]->result_value) : $aDate[$aTest->id]->result_value)}}
+							{{empty($aDate[$aTest->id]) ? '' : Helper::FormatTestValue($aDate[$aTest->id])}}
 						</td>
 					@endforeach
 

@@ -38,6 +38,12 @@ table {
 
 .mode-all-for-printing-by-class table {
 	page-break-inside: avoid;
+	margin-bottom: 5px;
+}
+
+/* Good for my specific case. */
+.mode-all-for-printing-by-class table:nth-of-type(4) {
+	margin-bottom: 100px;
 }
 
 thead {

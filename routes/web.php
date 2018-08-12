@@ -13,13 +13,17 @@
 
 use Illuminate\Support\Facades\Route;
 
+set_time_limit(5);	// Safety net.
+
 Route::get('/', function ()
 {
     return view('index');
 });
 
-function GetAllTestResults () {
-	return App\TakenTest::orderBy('specimen_collection_time', 'asc')
+if (!function_exists('GetAllTestResults')) {
+	function GetAllTestResults ()
+	{
+		return App\TakenTest::orderBy('specimen_collection_time', 'asc')
 //		->where('testable_quality_id', '=', 'Ast')
 //		->orWhere('testable_quality_id', '=', 'Alt')
 //		->orWhere('testable_quality_id', '=', 'Cpk')
@@ -30,13 +34,14 @@ function GetAllTestResults () {
 //		->orWhere('testable_quality_id', '=', 'Tbil')
 //		->orWhere('testable_quality_id', '=', 'Ldh')
 //		->orWhere('testable_quality_id', '=', 'Ceruloplasmin')
-		->get()
-		->map(function ($oResult)
-		{
-			$oResult->specimen_collection_time = $oResult->specimen_collection_time->setTimezone(config('app.timezone'));
+			->get()
+			->map(function ($oResult)
+			{
+				$oResult->specimen_collection_time = $oResult->specimen_collection_time->setTimezone(config('app.timezone'));
 
-			return $oResult;
-		});
+				return $oResult;
+			});
+	}
 }
 
 Route::get('/all-for-printing', function ()
