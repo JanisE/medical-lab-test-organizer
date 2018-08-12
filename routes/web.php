@@ -36,7 +36,13 @@ function GetAllTestResults () {
 			$oResult->specimen_collection_time = $oResult->specimen_collection_time->setTimezone(config('app.timezone'));
 
 			return $oResult;
-		})
+		});
+}
+
+Route::get('/all-for-printing', function ()
+{
+	$aTestClasses = App\TestClass::orderBy('order', 'asc')->get();
+	$aAllTestResults = GetAllTestResults()
 		->groupBy(function($oResult)
 		{
 			return $oResult->specimen_collection_time->format('Y-m-d');
@@ -45,20 +51,30 @@ function GetAllTestResults () {
 		{
 			return $aDate->keyBy('testable_quality_id');
 		});
-}
 
-Route::get('/all-for-printing', function ()
+    return view('results', compact('aTestClasses', 'aAllTestResults'));
+});
+
+Route::get('/all-for-printing-by-class', function ()
 {
 	$aTestClasses = App\TestClass::orderBy('order', 'asc')->get();
 	$aAllTestResults = GetAllTestResults();
 
-    return view('results', compact('aTestClasses', 'aAllTestResults'));
+	return view('results-by-class', compact('aTestClasses', 'aAllTestResults'));
 });
 
 Route::get('/all-for-big-screens', function ()
 {
 	$aTestClasses = App\TestClass::orderBy('order', 'asc')->get();
-	$aAllTestResults = GetAllTestResults();
+	$aAllTestResults = GetAllTestResults()
+		->groupBy(function($oResult)
+		{
+			return $oResult->specimen_collection_time->format('Y-m-d');
+		})
+		->map(function ($aDate)
+		{
+			return $aDate->keyBy('testable_quality_id');
+		});
 
 	return view('results-with-datatables', compact('aTestClasses', 'aAllTestResults'));
 });

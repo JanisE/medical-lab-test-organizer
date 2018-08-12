@@ -25,18 +25,26 @@
 	</thead>
 
 	<tbody>
-	<?php /* TODO Do not display classes or testable qualities that have no taken tests. */ ?>
-
 	@foreach ($aTestClasses as $aTestClass)
 
-		{{-- @if ($aTestClass->id == 14 || $aTestClass->id == 15) --}}
-		{{--@if (! ($aTestClass->id == 14 || $aTestClass->id == 15))--}}
-		@if (true)
+		<?php
+			$iTakenTests = 0;
+			foreach ($aTestClass->testableQualities as $aTest) {
+				foreach ($aTestResults as $aDate) {
+					if (isset($aDate[$aTest->id])) {
+						$iTakenTests++;
+					}
+				}
+			}
+		?>
+
+		@if ($iTakenTests > 0)
 
 		<tr class="test_class">
 			<th colspan="{{4 + count($aTestResults) + ($displayQualitiesFooter ? 4 : 0)}}">{{$aTestClass->name_lv}}</th>
 		</tr>
 
+		<?php /* TODO Do not display testable qualities that have no taken tests. */ ?>
 		@foreach ($aTestClass->testableQualities as $aTest)
 
 			{{--@if (strpos($aTest->id, 'urine') === 0 || strpos($aTest->id, 'stool') === 0)--}}

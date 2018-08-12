@@ -12,7 +12,7 @@
 <body>
 <ul>
 	<li><a href="/all-for-printing">Visas – printēšanai (vairākās tabulās)</a></li>
-	{{--<li><a href="/all-for-printing">Visas, klases – atsevišķās tabulās (printēšanai)</a></li>--}}
+	<li><a href="/all-for-printing-by-class">Visas, klases – atsevišķās tabulās (printēšanai)</a></li>
 	<li><a href="/all-for-big-screens">Visas – lieliem ekrāniem (viena tabula ar fiksētām galvenes rindām un kolonnām)</a></li>
 	<li><a href="/last">Pēdējās</a></li>
 </ul>

@@ -10,4 +10,15 @@ class TestClass extends Model
 	{
 		return $this->hasMany('App\TestableQuality');
 	}
+
+	public function takenTests ()
+	{
+		$takenTests = collect();
+
+		foreach ($this->testableQualities as $oTestableQuality) {
+			$takenTests = $takenTests->merge($oTestableQuality->takenTests);
+		}
+
+		return $takenTests->sortBy('specimen_collection_time');
+	}
 }
