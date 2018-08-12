@@ -9,7 +9,7 @@
 
 	<link href="css/style.css" rel="stylesheet" type="text/css">
 </head>
-<body class="mode-all-for-printing">
+<body class="mode-all-for-printing-by-class">
 	<div class="position-ref">
 		<div class="content">
 			{{--<div class="title m-b-md">--}}
@@ -25,7 +25,10 @@
 						return $aDate->keyBy('testable_quality_id');
 					})->chunk(16) as $aTestResults)
 
-					@include('table')
+					@include('table', [
+						'bDisplayDateFooter' => false,
+						'bHideQualitiesWithNoData' => false
+					])
 				@endforeach
 			@endforeach
 		</div>
