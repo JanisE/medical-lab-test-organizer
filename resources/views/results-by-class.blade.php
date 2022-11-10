@@ -23,7 +23,7 @@
 					})
 					->map(function ($aDate) {
 						return $aDate->keyBy('testable_quality_id');
-					}), 175) as $aTestResults)
+					}), 166) as $aTestResults)
 						@include('table', [
 							'bDisplayDateFooter' => false,
 							'bHideQualitiesWithNoData' => false
