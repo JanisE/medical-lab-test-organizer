@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<ruleset name="KStars">
+    <description>KStars Coding Standard</description>
+
+    <!-- The paths are relative to "vendor/squizlabs/php_codesniffer/" -->
+    <config name="installed_paths" value="./../../../vendor/magento-ecg/coding-standard,./../../../vendor/slevomat/coding-standard"/>
+
+    <!--Use the Magento 2 standard bey default (https://github.com/magento-ecg/coding-standard).-->
+    <rule ref="EcgM2">
+        <!-- ~~~ Excluding... ~~~ -->
+
+        <!-- Complains about image processing, data encoding, buffer management functions. -->
+        <exclude name="Ecg.Security.ForbiddenFunction.Found"/>
+    </rule>
+
+    <!--Add PSR1 and PSR2 standards to comply more with-->
+        <!--http://devdocs.magento.com/guides/v2.2/coding-standards/code-standard-php.html-->
+    <!--It seems they are not enforced by the Magento Code Sniffer standard ruleset.-->
+    <rule ref="PSR1"/>
+    <rule ref="PSR2"/>
+
+    <!-- ~~~ Ignore some rules in specific files. ~~~ -->
+
+    <!-- Laravel's original code uses "require" there. -->
+    <rule ref="Ecg.Security.IncludeFile.IncludeFileDetected">
+        <exclude-pattern>app/Console/Kernel.php</exclude-pattern>
+        <exclude-pattern>app/Providers/BroadcastServiceProvider.php</exclude-pattern>
+    </rule>
+
+    <rule ref="Ecg.Sql.SlowQuery">
+        <!-- Detects queries where there are none. -->
+        <exclude-pattern>app/Providers/*</exclude-pattern>
+    </rule>
+
+    <rule ref="Ecg.Performance.Loop">
+        <!-- I've thought about it, I need "save" in a loop, it will be all right. -->
+        <exclude-pattern>app/Console/Commands/UpdateOrders.php</exclude-pattern>
+        <exclude-pattern>app/Http/Controllers/MapDesignController.php</exclude-pattern>
+    </rule>
+
+    <!-- ~~~ Add more rules. ~~~ -->
+
+    <!-- Adds more checks (including presence) of PHPDocs. -->
+    <rule ref="SlevomatCodingStandard.TypeHints.TypeHintDeclaration">
+        <!-- To specify types of array elements is probably too much to ask right now -->
+
+        <!-- @var annotation of property ... does not specify type hint for its items. -->
+        <exclude name="SlevomatCodingStandard.TypeHints.TypeHintDeclaration.MissingTraversablePropertyTypeHintSpecification"/>
+
+        <!-- @param annotation of method ... does not specify type hint for items of its traversable parameter ... -->
+        <exclude name="SlevomatCodingStandard.TypeHints.TypeHintDeclaration.MissingTraversableParameterTypeHintSpecification"/>
+
+        <!-- @return annotation of method ... does not specify type hint for items of its traversable return value. -->
+        <exclude name="SlevomatCodingStandard.TypeHints.TypeHintDeclaration.MissingTraversableReturnTypeHintSpecification"/>
+    </rule>
+
+    <rule ref="SlevomatCodingStandard.TypeHints.TypeHintDeclaration.MissingParameterTypeHint">
+        <!-- Method \App\UpdateOrdersBookmark::__set() does not have parameter type hint for its parameter $key but it should be possible to add it based on @param annotation "string" -->
+        <!-- If I add the hints, I get function signature incompatibility error: -->
+        <!-- Declaration of App\UpdateOrdersBookmark::__get(string $key) should be compatible with Illuminate\Database\Eloquent\Model::__get($key) -->
+        <!-- So, just disable the check here. -->
+        <exclude-pattern>app/UpdateOrdersBookmark.php</exclude-pattern>
+
+        <!-- Method \App\MapDesign::setPropertiesAttribute() does not have parameter type hint for its parameter
+             $properties but it should be possible to add it based on @param annotation "array|null". -->
+        <!-- This is a bug reported and fixed here: https://github.com/slevomat/coding-standard/issues/126
+             Should remove this exclude once we can upgrade our Slevomat coding standard version (we cannot do it
+             now because of the PHP version requirement). -->
+        <exclude-pattern>app/MapDesign.php</exclude-pattern>
+    </rule>
+
+
+    <rule ref="Generic.Commenting.DocComment"/>
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="120" />
+            <property name="absoluteLineLimit" value="125" />
+        </properties>
+    </rule>
+</ruleset>

@@ -9,7 +9,10 @@
         "prod": "npm run production",
         "production": "cross-env NODE_ENV=production node_modules/webpack/bin/webpack.js --no-progress --hide-modules --config=node_modules/laravel-mix/setup/webpack.config.js",
         "lint:js": "./node_modules/.bin/eslint parse.js src/*js",
-        "fix:js": "./node_modules/.bin/eslint parse.js src/*js"
+        "fix:js": "./node_modules/.bin/eslint parse.js src/*js",
+
+        "lint:php": "vendor/bin/phpcs --config-delete installed_paths > /dev/null && vendor/bin/phpcs app/",
+        "fix:php": "vendor/bin/php-cs-fixer fix --config=./.php_cs.dist app/ && vendor/bin/phpcbf --config-delete installed_paths > /dev/null && vendor/bin/phpcbf app/"
     },
     "devDependencies": {
         "axios": "^0.18",
