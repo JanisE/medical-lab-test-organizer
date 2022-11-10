@@ -60,6 +60,7 @@ function parseVC4 (sSource) {
 		case 'Urīns':
 			sSpecimenSourceType = 'urine';
 			break;
+		case 'Fēces':
 		case 'Fēces koprogramma':
 			sSpecimenSourceType = 'stool';
 			break;
