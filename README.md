@@ -4,7 +4,7 @@ I'm using a Linux Ubuntu-like distribution, that's where the command examples co
 
 * SQLite3 driver for PHP:
 ```bash
-sudo apt-get install php7.1-sqlite3
+sudo apt-get install php-sqlite3
 ```
 * `pdftotext` utility:
 ```bash
